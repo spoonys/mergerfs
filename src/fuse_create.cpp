@@ -86,24 +86,24 @@ namespace l
     int rv;
     string fullpath;
     string fusedirpath;
-    vector<const string*> createpaths;
-    vector<const string*> existingpaths;
+    vector<string> createpaths;
+    vector<string> existingpaths;
 
     fusedirpath = fs::path::dirname(fusepath_);
 
-    rv = searchFunc_(branches_,fusedirpath,minfreespace_,existingpaths);
+    rv = searchFunc_(branches_,fusedirpath,minfreespace_,&existingpaths);
     if(rv == -1)
       return -errno;
 
-    rv = createFunc_(branches_,fusedirpath,minfreespace_,createpaths);
+    rv = createFunc_(branches_,fusedirpath,minfreespace_,&createpaths);
     if(rv == -1)
       return -errno;
 
-    rv = fs::clonepath_as_root(*existingpaths[0],*createpaths[0],fusedirpath);
+    rv = fs::clonepath_as_root(existingpaths[0],createpaths[0],fusedirpath);
     if(rv == -1)
       return -errno;
 
-    return l::create_core(*createpaths[0],
+    return l::create_core(createpaths[0],
                           fusepath_,
                           mode_,
                           umask_,
@@ -119,42 +119,42 @@ namespace FUSE
          mode_t          mode_,
          fuse_file_info *ffi_)
   {
-    const fuse_context      *fc     = fuse_get_context();
-    const Config            &config = Config::get(fc);
-    const ugid::Set          ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard  readlock(&config.branches_lock);
+    const Config       &config = Config::get();
+    const fuse_context *fc     = fuse_get_context();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
     switch(config.cache_files)
       {
-      case CacheFiles::LIBFUSE:
+      case CacheFiles::ENUM::INVALID:
+      case CacheFiles::ENUM::LIBFUSE:
         ffi_->direct_io  = config.direct_io;
         ffi_->keep_cache = config.kernel_cache;
         ffi_->auto_cache = config.auto_cache;
         break;
-      case CacheFiles::OFF:
+      case CacheFiles::ENUM::OFF:
         ffi_->direct_io  = 1;
         ffi_->keep_cache = 0;
         ffi_->auto_cache = 0;
         break;
-      case CacheFiles::PARTIAL:
+      case CacheFiles::ENUM::PARTIAL:
         ffi_->direct_io  = 0;
         ffi_->keep_cache = 0;
         ffi_->auto_cache = 0;
         break;
-      case CacheFiles::FULL:
+      case CacheFiles::ENUM::FULL:
         ffi_->direct_io  = 0;
         ffi_->keep_cache = 1;
         ffi_->auto_cache = 0;
         break;
-      case CacheFiles::AUTO_FULL:
+      case CacheFiles::ENUM::AUTO_FULL:
         ffi_->direct_io  = 0;
         ffi_->keep_cache = 0;
         ffi_->auto_cache = 1;
         break;
       }
 
-    return l::create(config.getattr,
-                     config.create,
+    return l::create(config.func.getattr.policy,
+                     config.func.create.policy,
                      config.branches,
                      config.minfreespace,
                      fusepath_,

@@ -1,5 +1,7 @@
 /*
-  Copyright (c) 2016, Antonio SJ Musumeci <trapexit@spawn.link>
+  ISC License
+
+  Copyright (c) 2019, Antonio SJ Musumeci <trapexit@spawn.link>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -16,17 +18,30 @@
 
 #pragma once
 
-#include "config.hpp"
-
 #include <string>
-#include <vector>
 
-#include <fuse.h>
-
-namespace options
+class ToFromString
 {
-  void
-  parse(fuse_args                *args,
-        Config                   *config,
-        std::vector<std::string> *errs);
+public:
+  virtual std::string to_string() const = 0;
+  virtual int from_string(const std::string &) = 0;
+};
+
+namespace std
+{
+  inline
+  static
+  std::string
+  to_string(const ToFromString *o_)
+  {
+    return o_->to_string();
+  }
+
+  inline
+  static
+  std::string
+  to_string(const ToFromString &o_)
+  {
+    return o_.to_string();
+  }
 }

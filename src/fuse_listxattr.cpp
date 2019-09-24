@@ -42,46 +42,15 @@ namespace l
                         const size_t  size_)
   {
     string xattrs;
-    const vector<string> strs =
-      buildvector<string>
-      ("user.mergerfs.async_read")
-      ("user.mergerfs.branches")
-      ("user.mergerfs.cache.attr")
-      ("user.mergerfs.cache.entry")
-      ("user.mergerfs.cache.files")
-      ("user.mergerfs.cache.negative_entry")
-      ("user.mergerfs.cache.open")
-      ("user.mergerfs.cache.readdir")
-      ("user.mergerfs.cache.statfs")
-      ("user.mergerfs.cache.symlinks")
-      ("user.mergerfs.direct_io")
-      ("user.mergerfs.dropcacheonclose")
-      ("user.mergerfs.fuse_msg_size")
-      ("user.mergerfs.ignorepponrename")
-      ("user.mergerfs.link_cow")
-      ("user.mergerfs.minfreespace")
-      ("user.mergerfs.moveonenospc")
-      ("user.mergerfs.nullrw")
-      ("user.mergerfs.pid")
-      ("user.mergerfs.policies")
-      ("user.mergerfs.posix_acl")
-      ("user.mergerfs.security_capability")
-      ("user.mergerfs.srcmounts")
-      ("user.mergerfs.statfs")
-      ("user.mergerfs.statfs_ignore")
-      ("user.mergerfs.symlinkify")
-      ("user.mergerfs.symlinkify_timeout")
-      ("user.mergerfs.version")
-      ("user.mergerfs.xattr")
-      ;
+    vector<string> keys;
+
+    Config::keys(keys);
+    for(uint64_t i = 0; i < keys.size(); i++)
+      keys[i] = "user.mergerfs." + keys[i];
 
     xattrs.reserve(1024);
-    for(size_t i = 0; i < strs.size(); i++)
-      xattrs += (strs[i] + '\0');
-    for(size_t i = Category::Enum::BEGIN; i < Category::Enum::END; i++)
-      xattrs += ("user.mergerfs.category." + (std::string)*Category::categories[i] + '\0');
-    for(size_t i = FuseFunc::Enum::BEGIN; i < FuseFunc::Enum::END; i++)
-      xattrs += ("user.mergerfs.func." + (std::string)*FuseFunc::fusefuncs[i] + '\0');
+    for(size_t i = 0; i < keys.size(); i++)
+      xattrs += (keys[i] + '\0');
 
     if(size_ == 0)
       return xattrs.size();
@@ -105,9 +74,9 @@ namespace l
   {
     int rv;
     string fullpath;
-    vector<const string*> basepaths;
+    vector<string> basepaths;
 
-    rv = searchFunc_(branches_,fusepath_,minfreespace_,basepaths);
+    rv = searchFunc_(branches_,fusepath_,minfreespace_,&basepaths);
     if(rv == -1)
       return -errno;
 
@@ -126,26 +95,26 @@ namespace FUSE
             char       *list_,
             size_t      size_)
   {
-    const fuse_context *fc     = fuse_get_context();
-    const Config       &config = Config::get(fc);
+    const Config &config = Config::get();
 
     if(fusepath_ == config.controlfile)
       return l::listxattr_controlfile(list_,size_);
 
     switch(config.xattr)
       {
-      case 0:
+      case Config::XAttr::ENUM::INVALID:
+      case Config::XAttr::ENUM::PASSTHROUGH:
         break;
-      case ENOATTR:
+      case Config::XAttr::ENUM::NOATTR:
         return 0;
-      default:
-        return -config.xattr;
+      case Config::XAttr::ENUM::NOSYS:
+        return -ENOSYS;
       }
 
-    const ugid::Set         ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard readlock(&config.branches_lock);
+    const fuse_context *fc = fuse_get_context();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
-    return l::listxattr(config.listxattr,
+    return l::listxattr(config.func.listxattr.policy,
                         config.branches,
                         config.minfreespace,
                         fusepath_,

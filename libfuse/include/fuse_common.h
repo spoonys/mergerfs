@@ -40,6 +40,20 @@
 extern "C" {
 #endif
 
+typedef struct fuse_timeout_s fuse_timeout_t;
+struct fuse_timeout_s
+{
+  uint64_t sec;
+  uint64_t usec;
+};
+
+typedef struct fuse_timeouts_s fuse_timeouts_t;
+struct fuse_timeouts_s
+{
+  fuse_timeout_t entry;
+  fuse_timeout_t attr;
+};
+
 /**
  * Information about open files
  *
@@ -82,9 +96,6 @@ fuse_file_info
   uint32_t cache_readdir : 1;
 
   uint32_t auto_cache : 1;
-
-  /** Padding.  Do not use*/
-  uint32_t padding : 24;
 
   /** File handle.  May be filled in by filesystem in open().
       Available in all other file operations */

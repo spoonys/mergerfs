@@ -88,41 +88,41 @@ namespace FUSE
   open(const char     *fusepath_,
        fuse_file_info *ffi_)
   {
-    const fuse_context      *fc     = fuse_get_context();
-    const Config            &config = Config::get(fc);
-    const ugid::Set          ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard  readlock(&config.branches_lock);
+    const Config       &config = Config::get();
+    const fuse_context *fc     = fuse_get_context();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
     switch(config.cache_files)
       {
-      case CacheFiles::LIBFUSE:
+      case CacheFiles::ENUM::INVALID:
+      case CacheFiles::ENUM::LIBFUSE:
         ffi_->direct_io  = config.direct_io;
         ffi_->keep_cache = config.kernel_cache;
         ffi_->auto_cache = config.auto_cache;
         break;
-      case CacheFiles::OFF:
+      case CacheFiles::ENUM::OFF:
         ffi_->direct_io  = 1;
         ffi_->keep_cache = 0;
         ffi_->auto_cache = 0;
         break;
-      case CacheFiles::PARTIAL:
+      case CacheFiles::ENUM::PARTIAL:
         ffi_->direct_io  = 0;
         ffi_->keep_cache = 0;
         ffi_->auto_cache = 0;
         break;
-      case CacheFiles::FULL:
+      case CacheFiles::ENUM::FULL:
         ffi_->direct_io  = 0;
         ffi_->keep_cache = 1;
         ffi_->auto_cache = 0;
         break;
-      case CacheFiles::AUTO_FULL:
+      case CacheFiles::ENUM::AUTO_FULL:
         ffi_->direct_io  = 0;
         ffi_->keep_cache = 0;
         ffi_->auto_cache = 1;
         break;
       }
 
-    return l::open(config.open,
+    return l::open(config.func.open.policy,
                    config.open_cache,
                    config.branches,
                    config.minfreespace,

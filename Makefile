@@ -67,6 +67,7 @@ DEPS        = $(SRC:src/%.cpp=build/%.d)
 MANPAGE     = mergerfs.1
 CXXFLAGS   += \
 	      $(OPTS) \
+	      -std=c++11 \
               $(DEBUG_FLAGS) \
               $(STATIC_FLAGS) \
               $(LTO_FLAGS) \

@@ -15,3 +15,64 @@
   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
+
+#include "tofrom_string.hpp"
+
+#include <string>
+
+template<typename E>
+class Enum : public ToFromString
+{
+public:
+  typedef E ENUM;
+
+public:
+  Enum<ENUM>()
+  {
+  }
+
+  Enum<ENUM>(const ENUM data_)
+    : _data(data_)
+  {
+  }
+
+public:
+  Enum<ENUM>&
+  operator=(const ENUM data_)
+  {
+    _data = data_;
+    return *this;
+  }
+
+  Enum<ENUM>&
+  operator=(const std::string &s_)
+  {
+    from_string(s_);
+    return *this;
+  }
+
+public:
+  operator ENUM() const
+  {
+    return _data;
+  }
+
+public:
+  bool operator==(const ENUM data_) const
+  {
+    return (_data == data_);
+  }
+
+public:
+  std::string to_string() const;
+  int from_string(const std::string &);
+
+public:
+  int to_int() const
+  {
+    return (int)_data;
+  }
+
+private:
+  ENUM _data;
+};

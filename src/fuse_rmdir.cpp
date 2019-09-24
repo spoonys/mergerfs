@@ -35,7 +35,7 @@ namespace l
 {
   static
   int
-  rmdir_loop_core(const string *basepath_,
+  rmdir_loop_core(const string &basepath_,
                   const char   *fusepath_,
                   const int     error_)
   {
@@ -52,8 +52,8 @@ namespace l
 
   static
   int
-  rmdir_loop(const vector<const string*> &basepaths_,
-             const char                  *fusepath_)
+  rmdir_loop(const vector<string> &basepaths_,
+             const char           *fusepath_)
   {
     int error;
 
@@ -74,9 +74,9 @@ namespace l
         const char           *fusepath_)
   {
     int rv;
-    vector<const string*> basepaths;
+    vector<string> basepaths;
 
-    rv = actionFunc_(branches_,fusepath_,minfreespace_,basepaths);
+    rv = actionFunc_(branches_,fusepath_,minfreespace_,&basepaths);
     if(rv == -1)
       return -errno;
 
@@ -89,12 +89,11 @@ namespace FUSE
   int
   rmdir(const char *fusepath_)
   {
-    const fuse_context      *fc     = fuse_get_context();
-    const Config            &config = Config::get(fc);
-    const ugid::Set          ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard  readguard(&config.branches_lock);
+    const Config       &config = Config::get();
+    const fuse_context *fc     = fuse_get_context();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
-    return l::rmdir(config.rmdir,
+    return l::rmdir(config.func.rmdir.policy,
                     config.branches,
                     config.minfreespace,
                     fusepath_);

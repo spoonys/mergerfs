@@ -131,9 +131,9 @@ namespace l
     int fd;
     int rv;
     string fullpath;
-    vector<const string*> basepaths;
+    vector<string> basepaths;
 
-    rv = searchFunc_(branches_,fusepath_,minfreespace_,basepaths);
+    rv = searchFunc_(branches_,fusepath_,minfreespace_,&basepaths);
     if(rv == -1)
       return -errno;
 
@@ -158,13 +158,12 @@ namespace l
             void           *data_,
             uint32_t       *out_bufsz_)
   {
-    DirInfo                 *di     = reinterpret_cast<DirInfo*>(ffi_->fh);
-    const fuse_context      *fc     = fuse_get_context();
-    const Config            &config = Config::get(fc);
-    const ugid::Set          ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard  readlock(&config.branches_lock);
+    DirInfo            *di     = reinterpret_cast<DirInfo*>(ffi_->fh);
+    const fuse_context *fc     = fuse_get_context();
+    const Config       &config = Config::get();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
-    return l::ioctl_dir_base(config.open,
+    return l::ioctl_dir_base(config.func.open.policy,
                              config.branches,
                              config.minfreespace,
                              di->fusepath.c_str(),

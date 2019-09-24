@@ -17,13 +17,15 @@
 */
 
 #include "branch.hpp"
+#include "ef.hpp"
 #include "fs.hpp"
 #include "fs_glob.hpp"
+#include "rwlock.hpp"
 #include "str.hpp"
 
-#include <fnmatch.h>
-
 #include <string>
+
+#include <fnmatch.h>
 
 using std::string;
 using std::vector;
@@ -47,8 +49,52 @@ Branch::ro_or_nc(void) const
           (mode == Branch::NC));
 }
 
+static
+void
+split(const std::string &s_,
+      std::string       *instr_,
+      std::string       *values_)
+{
+  uint64_t offset;
+
+  offset = s_.find_first_of('/');
+  *instr_ = s_.substr(0,offset);
+  if(offset != std::string::npos)
+    *values_ = s_.substr(offset);
+}
+
+int
+Branches::from_string(const std::string &s_)
+{
+  std::string instr;
+  std::string values;
+
+  ::split(s_,&instr,&values);
+
+  if(instr == "+")
+    add_end(values);
+  ef(instr == "+<")
+    add_begin(values);
+  ef(instr == "+>")
+    add_end(values);
+  ef(instr == "-")
+    erase_fnmatch(values);
+  ef(instr == "-<")
+    erase_begin();
+  ef(instr == "->")
+    erase_end();
+  ef(instr == "=")
+    set(values);
+  ef(instr.empty())
+    set(values);
+  else
+    return -EINVAL;
+
+  return 0;
+}
+
 string
-Branches::to_string(const bool mode_) const
+Branches::to_string(void) const
 {
   string tmp;
 
@@ -58,22 +104,19 @@ Branches::to_string(const bool mode_) const
 
       tmp += branch.path;
 
-      if(mode_)
+      tmp += '=';
+      switch(branch.mode)
         {
-          tmp += '=';
-          switch(branch.mode)
-            {
-            default:
-            case Branch::RW:
-              tmp += "RW";
-              break;
-            case Branch::RO:
-              tmp += "RO";
-              break;
-            case Branch::NC:
-              tmp += "NC";
-              break;
-            }
+        default:
+        case Branch::RW:
+          tmp += "RW";
+          break;
+        case Branch::RO:
+          tmp += "RO";
+          break;
+        case Branch::NC:
+          tmp += "NC";
+          break;
         }
 
       tmp += ':';
@@ -96,6 +139,14 @@ Branches::to_paths(vector<string> &vec_) const
     }
 }
 
+void
+Branches::locked_to_paths(vector<string> &vec_) const
+{
+  rwlock::ReadGuard guard(&lock);
+
+  to_paths(vec_);
+}
+
 static
 void
 parse(const string &str_,
@@ -107,11 +158,11 @@ parse(const string &str_,
 
   str = str_;
   branch.mode = Branch::INVALID;
-  if(str::ends_with(str,"=RO"))
+  if(str::endswith(str,"=RO"))
     branch.mode = Branch::RO;
-  else if(str::ends_with(str,"=RW"))
+  else if(str::endswith(str,"=RW"))
     branch.mode = Branch::RW;
-  else if(str::ends_with(str,"=NC"))
+  else if(str::endswith(str,"=NC"))
     branch.mode = Branch::NC;
 
   if(branch.mode != Branch::INVALID)
@@ -219,4 +270,33 @@ Branches::erase_fnmatch(const std::string &str_)
 
       i = ((match == 0) ? erase(i) : (i+1));
     }
+}
+
+SrcMounts::SrcMounts(Branches &b_)
+  : _branches(b_)
+{
+
+}
+
+int
+SrcMounts::from_string(const std::string &s_)
+{
+  return _branches.from_string(s_);
+}
+
+std::string
+SrcMounts::to_string(void) const
+{
+  std::string rv;
+
+  for(uint64_t i = 0; i < _branches.size(); i++)
+    {
+      rv += _branches[i].path;
+      rv += ':';
+    }
+
+  if(*rv.rbegin() == ':')
+    rv.erase(rv.size() - 1);
+
+  return rv;
 }

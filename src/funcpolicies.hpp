@@ -1,5 +1,7 @@
 /*
-  Copyright (c) 2016, Antonio SJ Musumeci <trapexit@spawn.link>
+  ISC License
+
+  Copyright (c) 2019, Antonio SJ Musumeci <trapexit@spawn.link>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -16,17 +18,36 @@
 
 #pragma once
 
-#include "config.hpp"
+#include "policy.hpp"
 
 #include <string>
 #include <vector>
 
-#include <fuse.h>
-
-namespace options
+class FuncPolicies
 {
-  void
-  parse(fuse_args                *args,
-        Config                   *config,
-        std::vector<std::string> *errs);
-}
+public:
+  Policy access;
+  Policy chmod;
+  Policy chown;
+  Policy create;
+  Policy getattr;
+  Policy getxattr;
+  Policy link;
+  Policy listxattr;
+  Policy mkdir;
+  Policy mknod;
+  Policy open;
+  Policy readlink;
+  Policy removexattr;
+  Policy rename;
+  Policy rmdir;
+  Policy setxattr;
+  Policy symlink;
+  Policy truncate;
+  Policy unlink;
+  Policy utimens;
+
+public:
+  const Policy* policy(const std::string &func) const;
+  void funcs(std::vector<std::string> *vec) const;
+};

@@ -70,22 +70,22 @@ namespace l
 
   static
   bool
-  should_ignore(const StatFSIgnore::Enum  ignore_,
-                const Branch             *branch_,
-                const bool                readonly_)
+  should_ignore(const StatFSIgnore  ignore_,
+                const Branch       *branch_,
+                const bool          readonly_)
   {
-    return ((((ignore_ == StatFSIgnore::RO) || readonly_) &&
+    return ((((ignore_ == StatFSIgnore::ENUM::RO) || readonly_) &&
              (branch_->ro_or_nc())) ||
-            ((ignore_ == StatFSIgnore::NC) && (branch_->nc())));
+            ((ignore_ == StatFSIgnore::ENUM::NC) && (branch_->nc())));
   }
 
   static
   int
-  statfs(const Branches           &branches_,
-         const char               *fusepath_,
-         const StatFS::Enum        mode_,
-         const StatFSIgnore::Enum  ignore_,
-         struct statvfs           *fsstat_)
+  statfs(const Branches     &branches_,
+         const char         *fusepath_,
+         const StatFS        mode_,
+         const StatFSIgnore  ignore_,
+         struct statvfs     *fsstat_)
   {
     int rv;
     string fullpath;
@@ -101,7 +101,7 @@ namespace l
     min_namemax = std::numeric_limits<unsigned long>::max();
     for(size_t i = 0, ei = branches_.size(); i < ei; i++)
       {
-        fullpath = ((mode_ == StatFS::FULL) ?
+        fullpath = ((mode_ == StatFS::ENUM::FULL) ?
                     fs::path::make(&branches_[i].path,fusepath_) :
                     branches_[i].path);
 
@@ -153,10 +153,9 @@ namespace FUSE
   statfs(const char     *fusepath_,
          struct statvfs *st_)
   {
-    const fuse_context      *fc     = fuse_get_context();
-    const Config            &config = Config::get(fc);
-    const ugid::Set          ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard  readlock(&config.branches_lock);
+    const Config       &config = Config::get();
+    const fuse_context *fc     = fuse_get_context();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
     return l::statfs(config.branches,
                      fusepath_,

@@ -1,5 +1,7 @@
 /*
-  Copyright (c) 2016, Antonio SJ Musumeci <trapexit@spawn.link>
+  ISC License
+
+  Copyright (c) 2019, Antonio SJ Musumeci <trapexit@spawn.link>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -16,17 +18,29 @@
 
 #pragma once
 
-#include "config.hpp"
+#include "func.hpp"
 
-#include <string>
-#include <vector>
-
-#include <fuse.h>
-
-namespace options
+class Funcs
 {
-  void
-  parse(fuse_args                *args,
-        Config                   *config,
-        std::vector<std::string> *errs);
-}
+public:  
+  FuncAccess      access;
+  FuncChmod       chmod;
+  FuncChown       chown;
+  FuncCreate      create;
+  FuncGetAttr     getattr;
+  FuncGetXAttr    getxattr;
+  FuncLink        link;
+  FuncListXAttr   listxattr;
+  FuncMkdir       mkdir;
+  FuncMknod       mknod;
+  FuncOpen        open;
+  FuncReadlink    readlink;
+  FuncRemoveXAttr removexattr;
+  FuncRename      rename;
+  FuncRmdir       rmdir;
+  FuncSetXAttr    setxattr;
+  FuncSymlink     symlink;
+  FuncTruncate    truncate;
+  FuncUnlink      unlink;
+  FuncUtimens     utimens;
+};

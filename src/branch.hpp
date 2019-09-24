@@ -18,11 +18,16 @@
 
 #pragma once
 
+#include "tofrom_string.hpp"
+
 #include <string>
 #include <vector>
 
-struct Branch
+#include <pthread.h>
+
+class Branch
 {
+public:
   enum Mode
     {
       INVALID,
@@ -39,18 +44,37 @@ struct Branch
   bool ro_or_nc(void) const;
 };
 
-class Branches : public std::vector<Branch>
+class Branches : public std::vector<Branch>, public ToFromString
 {
 public:
-  std::string to_string(const bool mode_ = false) const;
-
-  void to_paths(std::vector<std::string> &vec_) const;
+  int from_string(const std::string &str);
+  std::string to_string(void) const;
 
 public:
-  void set(const std::string &str_);
-  void add_begin(const std::string &str_);
-  void add_end(const std::string &str_);
+  void to_paths(std::vector<std::string> &vec) const;
+  void locked_to_paths(std::vector<std::string> &vec) const;
+
+public:
+  void set(const std::string &str);
+  void add_begin(const std::string &str);
+  void add_end(const std::string &str);
   void erase_begin(void);
   void erase_end(void);
-  void erase_fnmatch(const std::string &str_);
+  void erase_fnmatch(const std::string &str);
+
+public:
+  mutable pthread_rwlock_t lock;
+};
+
+class SrcMounts : public ToFromString
+{
+public:
+  SrcMounts(Branches &b_);
+
+public:
+  int from_string(const std::string &str);
+  std::string to_string(void) const;
+
+private:
+  Branches &_branches;
 };

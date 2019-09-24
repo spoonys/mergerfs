@@ -101,11 +101,7 @@ struct fuse_entry_param {
 	 */
 	struct stat attr;
 
-	/** Validity timeout (in seconds) for the attributes */
-	double attr_timeout;
-
-	/** Validity timeout (in seconds) for the name */
-	double entry_timeout;
+        fuse_timeouts_t timeout;
 };
 
 /** Additional context associated with requests */
@@ -1142,8 +1138,9 @@ int fuse_reply_create(fuse_req_t req, const struct fuse_entry_param *e,
  * @param attr_timeout	validity timeout (in seconds) for the attributes
  * @return zero for success, -errno for failure to send reply
  */
-int fuse_reply_attr(fuse_req_t req, const struct stat *attr,
-		    double attr_timeout);
+int fuse_reply_attr(fuse_req_t            req,
+                    const struct stat    *attr,
+                    const fuse_timeout_t *timeout);
 
 /**
  * Reply with the contents of a symbolic link

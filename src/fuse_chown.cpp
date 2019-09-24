@@ -34,7 +34,7 @@ namespace l
 {
   static
   int
-  chown_loop_core(const string *basepath_,
+  chown_loop_core(const string &basepath_,
                   const char   *fusepath_,
                   const uid_t   uid_,
                   const gid_t   gid_,
@@ -52,10 +52,10 @@ namespace l
 
   static
   int
-  chown_loop(const vector<const string*> &basepaths_,
-             const char                  *fusepath_,
-             const uid_t                  uid_,
-             const gid_t                  gid_)
+  chown_loop(const vector<string> &basepaths_,
+             const char           *fusepath_,
+             const uid_t           uid_,
+             const gid_t           gid_)
   {
     int error;
 
@@ -78,9 +78,9 @@ namespace l
         const gid_t           gid_)
   {
     int rv;
-    vector<const string*> basepaths;
+    vector<string> basepaths;
 
-    rv = actionFunc_(branches_,fusepath_,minfreespace_,basepaths);
+    rv = actionFunc_(branches_,fusepath_,minfreespace_,&basepaths);
     if(rv == -1)
       return -errno;
 
@@ -95,12 +95,11 @@ namespace FUSE
         uid_t       uid_,
         gid_t       gid_)
   {
-    const fuse_context      *fc     = fuse_get_context();
-    const Config            &config = Config::get(fc);
-    const ugid::Set          ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard  readlock(&config.branches_lock);
+    const Config       &config = Config::get();
+    const fuse_context *fc     = fuse_get_context();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
-    return l::chown(config.chown,
+    return l::chown(config.func.chown.policy,
                     config.branches,
                     config.minfreespace,
                     fusepath_,

@@ -92,7 +92,7 @@ struct fuse_operations {
 	 * ignored.	 The 'st_ino' field is ignored except if the 'use_ino'
 	 * mount option is given.
 	 */
-	int (*getattr) (const char *, struct stat *);
+        int (*getattr) (const char *, struct stat *, fuse_timeouts_t *);
 
 	/** Read the target of a symbolic link
 	 *
@@ -404,7 +404,7 @@ struct fuse_operations {
 	 *
 	 * Introduced in version 2.5
 	 */
-	int (*fgetattr) (const char *, struct stat *, struct fuse_file_info *);
+        int (*fgetattr) (const char *, struct stat *, struct fuse_file_info *, fuse_timeouts_t *);
 
 	/**
 	 * Perform POSIX file locking operation
@@ -867,9 +867,17 @@ struct fuse_fs;
  * fuse_fs_releasedir and fuse_fs_statfs, which return 0.
  */
 
-int fuse_fs_getattr(struct fuse_fs *fs, const char *path, struct stat *buf);
-int fuse_fs_fgetattr(struct fuse_fs *fs, const char *path, struct stat *buf,
-		     struct fuse_file_info *fi);
+int fuse_fs_getattr(struct fuse_fs  *fs,
+                    const char      *path,
+                    struct stat     *buf,
+                    fuse_timeouts_t *timeout);
+
+int fuse_fs_fgetattr(struct fuse_fs        *fs,
+                     const char            *path,
+                     struct stat           *buf,
+		     struct fuse_file_info *fi,
+                     fuse_timeouts_t       *timeout);
+
 int fuse_fs_rename(struct fuse_fs *fs, const char *oldpath,
 		   const char *newpath);
 int fuse_fs_unlink(struct fuse_fs *fs, const char *path);

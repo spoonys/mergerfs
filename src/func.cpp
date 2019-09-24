@@ -1,5 +1,7 @@
 /*
-  Copyright (c) 2016, Antonio SJ Musumeci <trapexit@spawn.link>
+  ISC License
+
+  Copyright (c) 2019, Antonio SJ Musumeci <trapexit@spawn.link>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -14,19 +16,24 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-#pragma once
+#include "func.hpp"
 
-#include "config.hpp"
-
-#include <string>
-#include <vector>
-
-#include <fuse.h>
-
-namespace options
+int
+Func::from_string(const std::string &s_)
 {
-  void
-  parse(fuse_args                *args,
-        Config                   *config,
-        std::vector<std::string> *errs);
+  const Policy *tmp;
+
+  tmp = &Policy::find(s_);
+  if(tmp == Policy::invalid)
+    return -EINVAL;
+
+  policy = tmp;
+
+  return 0;
+}
+
+std::string
+Func::to_string(void) const
+{
+  return policy->to_string();
 }

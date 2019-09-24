@@ -74,7 +74,7 @@ namespace l
 
   static
   int
-  readlink_core(const string *basepath_,
+  readlink_core(const string &basepath_,
                 const char   *fusepath_,
                 char         *buf_,
                 const size_t  size_,
@@ -103,9 +103,9 @@ namespace l
            const time_t          symlinkify_timeout_)
   {
     int rv;
-    vector<const string*> basepaths;
+    vector<string> basepaths;
 
-    rv = searchFunc_(branches_,fusepath_,minfreespace_,basepaths);
+    rv = searchFunc_(branches_,fusepath_,minfreespace_,&basepaths);
     if(rv == -1)
       return -errno;
 
@@ -121,12 +121,11 @@ namespace FUSE
            char       *buf_,
            size_t      size_)
   {
-    const fuse_context      *fc     = fuse_get_context();
-    const Config            &config = Config::get(fc);
-    const ugid::Set          ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard  readlock(&config.branches_lock);
+    const Config       &config = Config::get();
+    const fuse_context *fc     = fuse_get_context();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
-    return l::readlink(config.readlink,
+    return l::readlink(config.func.readlink.policy,
                        config.branches,
                        config.minfreespace,
                        fusepath_,

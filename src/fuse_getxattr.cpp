@@ -27,7 +27,6 @@
 #include <fuse.h>
 
 #include <algorithm>
-#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -39,7 +38,6 @@ static const char SECURITY_CAPABILITY[] = "security.capability";
 
 using std::string;
 using std::vector;
-using std::set;
 
 namespace l
 {
@@ -66,44 +64,6 @@ namespace l
 
   static
   void
-  getxattr_controlfile_fusefunc_policy(const Config &config_,
-                                       const string &attr_,
-                                       string       &attrvalue_)
-  {
-    FuseFunc fusefunc;
-
-    fusefunc = FuseFunc::find(attr_);
-    if(fusefunc != FuseFunc::invalid)
-      attrvalue_ = (std::string)*config_.policies[(FuseFunc::Enum::Type)*fusefunc];
-  }
-
-  static
-  void
-  getxattr_controlfile_category_policy(const Config &config_,
-                                       const string &attr_,
-                                       string       &attrvalue_)
-  {
-    Category cat;
-
-    cat = Category::find(attr_);
-    if(cat != Category::invalid)
-      {
-        vector<string> policies;
-        for(int i = FuseFunc::Enum::BEGIN; i < FuseFunc::Enum::END; i++)
-          {
-            if(cat == (Category::Enum::Type)*FuseFunc::fusefuncs[i])
-              policies.push_back(*config_.policies[i]);
-          }
-
-        std::sort(policies.begin(),policies.end());
-        policies.erase(std::unique(policies.begin(),policies.end()),
-                       policies.end());
-        attrvalue_ = str::join(policies,',');
-      }
-  }
-
-  static
-  void
   getxattr_controlfile_srcmounts(const Config &config_,
                                  string       &attrvalue_)
   {
@@ -115,201 +75,7 @@ namespace l
   getxattr_controlfile_branches(const Config &config_,
                                 string       &attrvalue_)
   {
-    attrvalue_ = config_.branches.to_string(true);
-  }
-
-  static
-  void
-  getxattr_controlfile_uint64_t(const uint64_t  uint_,
-                                string         &attrvalue_)
-  {
-    std::ostringstream os;
-
-    os << uint_;
-
-    attrvalue_ = os.str();
-  }
-
-  static
-  void
-  getxattr_controlfile_double(const double  d_,
-                              string       &attrvalue_)
-  {
-    std::ostringstream os;
-
-    os << d_;
-
-    attrvalue_ = os.str();
-  }
-
-  static
-  void
-  getxattr_controlfile_time_t(const time_t  time,
-                              string       &attrvalue)
-  {
-    std::ostringstream os;
-
-    os << time;
-
-    attrvalue = os.str();
-  }
-
-  static
-  void
-  getxattr_controlfile_bool(const bool  boolvalue,
-                            string     &attrvalue)
-  {
-    attrvalue = (boolvalue ? "true" : "false");
-  }
-
-  static
-  void
-  getxattr_controlfile_errno(const int  errno_,
-                             string    &attrvalue)
-  {
-    switch(errno_)
-      {
-      case 0:
-        attrvalue = "passthrough";
-        break;
-      case ENOATTR:
-        attrvalue = "noattr";
-        break;
-      case ENOSYS:
-        attrvalue = "nosys";
-        break;
-      default:
-        attrvalue = "ERROR";
-        break;
-      }
-  }
-
-  static
-  void
-  getxattr_controlfile_statfs(const Config::StatFS::Enum  enum_,
-                              string                     &attrvalue_)
-  {
-    switch(enum_)
-      {
-      case Config::StatFS::BASE:
-        attrvalue_ = "base";
-        break;
-      case Config::StatFS::FULL:
-        attrvalue_ = "full";
-        break;
-      default:
-        attrvalue_ = "ERROR";
-        break;
-      }
-  }
-
-  static
-  void
-  getxattr_controlfile_statfsignore(const Config::StatFSIgnore::Enum  enum_,
-                                    string                           &attrvalue_)
-  {
-    switch(enum_)
-      {
-      case Config::StatFSIgnore::NONE:
-        attrvalue_ = "none";
-        break;
-      case Config::StatFSIgnore::RO:
-        attrvalue_ = "ro";
-        break;
-      case Config::StatFSIgnore::NC:
-        attrvalue_ = "nc";
-        break;
-      default:
-        attrvalue_ = "ERROR";
-        break;
-      }
-  }
-
-  static
-  void
-  getxattr_controlfile(const Config::CacheFiles &cache_files_,
-                       string                   &attrvalue_)
-  {
-    attrvalue_ = (string)cache_files_;
-  }
-
-  static
-  void
-  getxattr_controlfile(const uint16_t &uint16_,
-                       string         &attrvalue_)
-  {
-    std::ostringstream os;
-
-    os << uint16_;
-
-    attrvalue_ = os.str();
-  }
-
-  static
-  void
-  getxattr_controlfile_policies(const Config &config,
-                                string       &attrvalue)
-  {
-    size_t i = Policy::Enum::begin();
-
-    attrvalue = (string)Policy::policies[i];
-    for(i++; i < Policy::Enum::end(); i++)
-      attrvalue += ',' + (string)Policy::policies[i];
-  }
-
-  static
-  void
-  getxattr_controlfile_version(string &attrvalue)
-  {
-    attrvalue = MERGERFS_VERSION;
-    if(attrvalue.empty())
-      attrvalue = "unknown_possible_problem_with_build";
-  }
-
-  static
-  void
-  getxattr_controlfile_pid(string &attrvalue)
-  {
-    int pid;
-    char buf[32];
-
-    pid = getpid();
-    snprintf(buf,sizeof(buf),"%d",pid);
-
-    attrvalue = buf;
-  }
-
-  static
-  void
-  getxattr_controlfile_cache_attr(string &attrvalue)
-  {
-    double d;
-
-    d = fuse_config_get_attr_timeout(fuse_get_context()->fuse);
-
-    l::getxattr_controlfile_double(d,attrvalue);
-  }
-
-  static
-  void
-  getxattr_controlfile_cache_entry(string &attrvalue)
-  {
-    double d;
-
-    d = fuse_config_get_entry_timeout(fuse_get_context()->fuse);
-
-    l::getxattr_controlfile_double(d,attrvalue);
-  }
-
-  static
-  void
-  getxattr_controlfile_cache_negative_entry(string &attrvalue)
-  {
-    double d;
-
-    d = fuse_config_get_negative_entry_timeout(fuse_get_context()->fuse);
-
-    l::getxattr_controlfile_double(d,attrvalue);
+    attrvalue_ = config_.branches.to_string();
   }
 
   static
@@ -320,88 +86,19 @@ namespace l
                        const size_t  count)
   {
     size_t len;
+    string key;
     string attrvalue;
     vector<string> attr;
 
-    str::split(attr,attrname,'.');
-    if((attr[0] != "user") || (attr[1] != "mergerfs"))
+    if(!str::startswith(attrname,"user.mergerfs."))
       return -ENOATTR;
 
-    switch(attr.size())
-      {
-      case 3:
-        if(attr[2] == "srcmounts")
-          l::getxattr_controlfile_srcmounts(config,attrvalue);
-        else if(attr[2] == "branches")
-          l::getxattr_controlfile_branches(config,attrvalue);
-        else if(attr[2] == "minfreespace")
-          l::getxattr_controlfile_uint64_t(config.minfreespace,attrvalue);
-        else if(attr[2] == "moveonenospc")
-          l::getxattr_controlfile_bool(config.moveonenospc,attrvalue);
-        else if(attr[2] == "dropcacheonclose")
-          l::getxattr_controlfile_bool(config.dropcacheonclose,attrvalue);
-        else if(attr[2] == "symlinkify")
-          l::getxattr_controlfile_bool(config.symlinkify,attrvalue);
-        else if(attr[2] == "symlinkify_timeout")
-          l::getxattr_controlfile_time_t(config.symlinkify_timeout,attrvalue);
-        else if(attr[2] == "nullrw")
-          l::getxattr_controlfile_bool(config.nullrw,attrvalue);
-        else if(attr[2] == "ignorepponrename")
-          l::getxattr_controlfile_bool(config.ignorepponrename,attrvalue);
-        else if(attr[2] == "security_capability")
-          l::getxattr_controlfile_bool(config.security_capability,attrvalue);
-        else if(attr[2] == "xattr")
-          l::getxattr_controlfile_errno(config.xattr,attrvalue);
-        else if(attr[2] == "link_cow")
-          l::getxattr_controlfile_bool(config.link_cow,attrvalue);
-        else if(attr[2] == "statfs")
-          l::getxattr_controlfile_statfs(config.statfs,attrvalue);
-        else if(attr[2] == "statfs_ignore")
-          l::getxattr_controlfile_statfsignore(config.statfs_ignore,attrvalue);
-        else if(attr[2] == "policies")
-          l::getxattr_controlfile_policies(config,attrvalue);
-        else if(attr[2] == "version")
-          l::getxattr_controlfile_version(attrvalue);
-        else if(attr[2] == "pid")
-          l::getxattr_controlfile_pid(attrvalue);
-        else if(attr[2] == "direct_io")
-          l::getxattr_controlfile_bool(config.direct_io,attrvalue);
-        else if(attr[2] == "posix_acl")
-          l::getxattr_controlfile_bool(config.posix_acl,attrvalue);
-        else if(attr[2] == "async_read")
-          l::getxattr_controlfile_bool(config.async_read,attrvalue);
-        else if(attr[2] == "fuse_msg_size")
-          l::getxattr_controlfile(config.fuse_msg_size,attrvalue);
-        break;
-
-      case 4:
-        if(attr[2] == "category")
-          l::getxattr_controlfile_category_policy(config,attr[3],attrvalue);
-        else if(attr[2] == "func")
-          l::getxattr_controlfile_fusefunc_policy(config,attr[3],attrvalue);
-        else if((attr[2] == "cache") && (attr[3] == "open"))
-          l::getxattr_controlfile_uint64_t(config.open_cache.timeout,attrvalue);
-        else if((attr[2] == "cache") && (attr[3] == "statfs"))
-          l::getxattr_controlfile_uint64_t(fs::statvfs_cache_timeout(),attrvalue);
-        else if((attr[2] == "cache") && (attr[3] == "attr"))
-          l::getxattr_controlfile_cache_attr(attrvalue);
-        else if((attr[2] == "cache") && (attr[3] == "entry"))
-          l::getxattr_controlfile_cache_entry(attrvalue);
-        else if((attr[2] == "cache") && (attr[3] == "negative_entry"))
-          l::getxattr_controlfile_cache_negative_entry(attrvalue);
-        else if((attr[2] == "cache") && (attr[3] == "symlinks"))
-          l::getxattr_controlfile_bool(config.cache_symlinks,attrvalue);
-        else if((attr[2] == "cache") && (attr[3] == "readdir"))
-          l::getxattr_controlfile_bool(config.cache_readdir,attrvalue);
-        else if((attr[2] == "cache") && (attr[3] == "files"))
-          l::getxattr_controlfile(config.cache_files,attrvalue);
-        break;
-      }
-
-    if(attrvalue.empty())
+    key = &attrname[14];
+    if(Config::has_key(key) == false)
       return -ENOATTR;
 
-    len = attrvalue.size();
+    attrvalue = config.get(&attrname[14]);
+    len       = attrvalue.size();
 
     if(count == 0)
       return len;
@@ -491,16 +188,16 @@ namespace l
   {
     int rv;
     string fullpath;
-    vector<const string*> basepaths;
+    vector<string> basepaths;
 
-    rv = searchFunc(branches_,fusepath,minfreespace,basepaths);
+    rv = searchFunc(branches_,fusepath,minfreespace,&basepaths);
     if(rv == -1)
       return -errno;
 
     fullpath = fs::path::make(basepaths[0],fusepath);
 
-    if(str::isprefix(attrname,"user.mergerfs."))
-      return l::getxattr_user_mergerfs(*basepaths[0],
+    if(str::startswith(attrname,"user.mergerfs."))
+      return l::getxattr_user_mergerfs(basepaths[0],
                                        fusepath,
                                        fullpath,
                                        branches_,
@@ -520,8 +217,7 @@ namespace FUSE
            char       *buf,
            size_t      count)
   {
-    const fuse_context *fc     = fuse_get_context();
-    const Config       &config = Config::get(fc);
+    const Config &config = Config::get();
 
     if(fusepath == config.controlfile)
       return l::getxattr_controlfile(config,
@@ -533,13 +229,13 @@ namespace FUSE
        l::is_attrname_security_capability(attrname))
       return -ENOATTR;
 
-    if(config.xattr)
-      return -config.xattr;
+    if(config.xattr.to_int())
+      return -config.xattr.to_int();
 
-    const ugid::Set         ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard readlock(&config.branches_lock);
+    const fuse_context *fc = fuse_get_context();
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
-    return l::getxattr(config.getxattr,
+    return l::getxattr(config.func.getxattr.policy,
                        config.branches,
                        config.minfreespace,
                        fusepath,

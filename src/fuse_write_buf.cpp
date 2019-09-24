@@ -61,6 +61,28 @@ namespace l
 
     return fuse_buf_copy(&dst,src_,cpflags);
   }
+
+  static
+  int
+  move_and_write_buf(fuse_bufvec *src_,
+                     off_t        offset_,
+                     FileInfo    *fi_)
+  {
+    int rv;
+    uint64_t extra;
+    vector<string> paths;
+    const ugid::Set ugid(0,0);
+    const Config &config = Config::get();
+
+    config.branches.locked_to_paths(paths);
+
+    extra = fuse_buf_size(src_);
+    rv = fs::movefile(paths,fi_->fusepath,extra,fi_->fd);
+    if(rv == -1)
+      return -ENOSPC;
+
+    return l::write_buf(fi_->fd,src_,offset_);
+  }
 }
 
 namespace FUSE
@@ -76,27 +98,7 @@ namespace FUSE
 
     rv = l::write_buf(fi->fd,src_,offset_);
     if(l::out_of_space(-rv))
-      {
-        const fuse_context *fc     = fuse_get_context();
-        const Config       &config = Config::get(fc);
-
-        if(config.moveonenospc)
-          {
-            size_t extra;
-            vector<string> paths;
-            const ugid::Set ugid(0,0);
-            const rwlock::ReadGuard readlock(&config.branches_lock);
-
-            config.branches.to_paths(paths);
-
-            extra = fuse_buf_size(src_);
-            rv = fs::movefile(paths,fi->fusepath,extra,fi->fd);
-            if(rv == -1)
-              return -ENOSPC;
-
-            rv = l::write_buf(fi->fd,src_,offset_);
-          }
-      }
+      rv = l::move_and_write_buf(src_,offset_,fi);
 
     return rv;
   }

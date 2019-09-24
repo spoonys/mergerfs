@@ -14,6 +14,8 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include "config2stream.hpp"
+
 #include "fs_path.hpp"
 #include "mergerfs.hpp"
 #include "option_parser.hpp"
@@ -154,18 +156,30 @@ namespace l
   main(const int   argc_,
        char      **argv_)
   {
-    fuse_args       args;
-    fuse_operations ops = {0};
-    Config          config;
+    fuse_args                 args;
+    fuse_operations           ops;
+    Config                   *config;
+    std::vector<std::string>  errs;
+
+    memset(&ops,0,sizeof(fuse_operations));
 
     args.argc      = argc_;
     args.argv      = argv_;
     args.allocated = 0;
 
-    options::parse(&args,&config);
+    config = &Config::get_writable();
+
+    options::parse(&args,config,&errs);
+    if(errs.size())
+      {
+        for(uint64_t i = 0; i < errs.size(); i++)
+          std::cerr << "* ERROR: " << errs[i] << std::endl;
+
+        return 1;
+      }
 
     l::setup_resources();
-    l::get_fuse_operations(ops,config.nullrw);
+    l::get_fuse_operations(ops,config->nullrw);
 
     return fuse_main(args.argc,
                      args.argv,

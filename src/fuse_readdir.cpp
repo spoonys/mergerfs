@@ -104,11 +104,10 @@ namespace FUSE
           off_t            offset_,
           fuse_file_info  *ffi_)
   {
-    DirInfo                 *di     = reinterpret_cast<DirInfo*>(ffi_->fh);
-    const fuse_context      *fc     = fuse_get_context();
-    const Config            &config = Config::get(fc);
-    const ugid::Set          ugid(fc->uid,fc->gid);
-    const rwlock::ReadGuard  readlock(&config.branches_lock);
+    const Config       &config = Config::get();
+    const fuse_context *fc     = fuse_get_context();
+    DirInfo            *di     = reinterpret_cast<DirInfo*>(ffi_->fh);
+    const ugid::Set     ugid(fc->uid,fc->gid);
 
     return l::readdir(config.branches,
                       di->fusepath.c_str(),

@@ -57,9 +57,6 @@ struct fuse_config {
 	unsigned int uid;
 	unsigned int gid;
 	unsigned int  umask;
-	double entry_timeout;
-	double negative_timeout;
-	double attr_timeout;
 	int remember;
 	int nopath;
 	int debug;
@@ -1399,8 +1396,7 @@ static int fuse_compat_open(struct fuse_fs *fs, const char *path,
 	else if (fs->compat == 22) {
 		struct fuse_file_info_compat tmp;
 		memcpy(&tmp, fi, sizeof(tmp));
-		err = ((struct fuse_operations_compat22 *) &fs->op)->open(path,
-									  &tmp);
+		err = ((struct fuse_operations_compat22 *) &fs->op)->open(path,&tmp);
 		memcpy(fi, &tmp, sizeof(tmp));
 		fi->fh = tmp.fh;
 	} else
@@ -1511,37 +1507,49 @@ static inline int fuse_compat_statfs(struct fuse_fs *fs, const char *path,
 
 #endif /* __FreeBSD__ || __NetBSD__ */
 
-int fuse_fs_getattr(struct fuse_fs *fs, const char *path, struct stat *buf)
+int
+fuse_fs_getattr(struct fuse_fs  *fs,
+                const char      *path,
+                struct stat     *buf,
+                fuse_timeouts_t *timeout)
 {
-	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.getattr) {
-		if (fs->debug)
-			fprintf(stderr, "getattr %s\n", path);
+  if(fs->op.getattr == NULL)
+    return -ENOSYS;
 
-		return fs->op.getattr(path, buf);
-	} else {
-		return -ENOSYS;
-	}
+  if(fs->debug)
+    fprintf(stderr,"getattr %s\n",path);
+
+  fuse_get_context()->private_data = fs->user_data;
+
+  return fs->op.getattr(path,buf,timeout);
 }
 
-int fuse_fs_fgetattr(struct fuse_fs *fs, const char *path, struct stat *buf,
-		     struct fuse_file_info *fi)
+int
+fuse_fs_fgetattr(struct fuse_fs        *fs,
+                 const char            *path,
+                 struct stat           *buf,
+                 struct fuse_file_info *fi,
+                 fuse_timeouts_t       *timeout)
 {
-	fuse_get_context()->private_data = fs->user_data;
-	if (fs->op.fgetattr) {
-		if (fs->debug)
-			fprintf(stderr, "fgetattr[%llu] %s\n",
-				(unsigned long long) fi->fh, path);
+  fuse_get_context()->private_data = fs->user_data;
+  if(fs->op.fgetattr)
+    {
+      if(fs->debug)
+        fprintf(stderr,"fgetattr[%llu] %s\n",(unsigned long long)fi->fh,path);
 
-		return fs->op.fgetattr(path, buf, fi);
-	} else if (path && fs->op.getattr) {
-		if (fs->debug)
-			fprintf(stderr, "getattr %s\n", path);
+      return fs->op.fgetattr(path,buf,fi,timeout);
+    }
+  else if(path && fs->op.getattr)
+    {
+      if(fs->debug)
+        fprintf(stderr,"getattr %s\n",path);
 
-		return fs->op.getattr(path, buf);
-	} else {
-		return -ENOSYS;
-	}
+      return fs->op.getattr(path,buf,timeout);
+    }
+  else
+    {
+      return -ENOSYS;
+    }
 }
 
 int
@@ -1933,7 +1941,7 @@ static int fill_dir_old(struct fuse_dirhandle *dh, const char *name, int type,
 			ino_t ino)
 {
 	int res;
-	struct stat stbuf;
+	struct stat stbuf ;
 
 	memset(&stbuf, 0, sizeof(stbuf));
 	stbuf.st_mode = type << 12;
@@ -2399,41 +2407,53 @@ update_stat(struct node       *node_,
   *stold = *stnew_;
 }
 
-static int lookup_path(struct fuse *f, fuse_ino_t nodeid,
-		       const char *name, const char *path,
-		       struct fuse_entry_param *e, struct fuse_file_info *fi)
+static
+int
+lookup_path(struct fuse             *f,
+            fuse_ino_t               nodeid,
+            const char              *name,
+            const char              *path,
+            struct fuse_entry_param *e,
+            struct fuse_file_info   *fi)
 {
-	int res;
+  int res;
 
-	memset(e, 0, sizeof(struct fuse_entry_param));
-	if (fi)
-		res = fuse_fs_fgetattr(f->fs, path, &e->attr, fi);
-	else
-		res = fuse_fs_getattr(f->fs, path, &e->attr);
-	if (res == 0) {
-		struct node *node;
+  memset(e,0,sizeof(struct fuse_entry_param));
 
-		node = find_node(f, nodeid, name);
-		if (node == NULL)
-			res = -ENOMEM;
-		else {
-			e->ino = node->nodeid;
-			e->generation = node->generation;
-			e->entry_timeout = f->conf.entry_timeout;
-			e->attr_timeout = f->conf.attr_timeout;
-                        pthread_mutex_lock(&f->lock);
-                        update_stat(node, &e->attr);
-                        pthread_mutex_unlock(&f->lock);
-			set_stat(f, e->ino, &e->attr);
-			if(f->conf.debug)
-                          fprintf(stderr,
-                                  "   NODEID: %llu\n"
-                                  "   GEN: %llu\n",
-                                  (unsigned long long)e->ino,
-                                  (unsigned long long)e->generation);
-		}
-	}
-	return res;
+  if(fi)
+    res = fuse_fs_fgetattr(f->fs,path,&e->attr,fi,&e->timeout);
+  else
+    res = fuse_fs_getattr(f->fs,path,&e->attr,&e->timeout);
+
+  if(res == 0)
+    {
+      struct node *node;
+
+      node = find_node(f,nodeid,name);
+      if(node == NULL)
+        {
+          res = -ENOMEM;
+        }
+      else
+        {
+          e->ino        = node->nodeid;
+          e->generation = node->generation;
+
+          pthread_mutex_lock(&f->lock);
+          update_stat(node,&e->attr);
+          pthread_mutex_unlock(&f->lock);
+
+          set_stat(f,e->ino,&e->attr);
+          if(f->conf.debug)
+            fprintf(stderr,
+                    "   NODEID: %llu\n"
+                    "   GEN: %llu\n",
+                    (unsigned long long)e->ino,
+                    (unsigned long long)e->generation);
+        }
+    }
+
+  return res;
 }
 
 static struct fuse_context_i *fuse_get_context_internal(void)
@@ -2608,9 +2628,8 @@ static void fuse_lib_lookup(fuse_req_t req, fuse_ino_t parent,
 			fprintf(stderr, "LOOKUP %s\n", path);
 		fuse_prepare_interrupt(f, req, &d);
 		err = lookup_path(f, parent, name, path, &e, NULL);
-		if (err == -ENOENT && f->conf.negative_timeout != 0.0) {
+		if (err == -ENOENT) {
 			e.ino = 0;
-			e.entry_timeout = f->conf.negative_timeout;
 			err = 0;
 		}
 		fuse_finish_interrupt(f, req, &d);
@@ -2661,56 +2680,69 @@ static void fuse_lib_forget_multi(fuse_req_t req, size_t count,
 }
 
 
-static void fuse_lib_getattr(fuse_req_t req, fuse_ino_t ino,
-			     struct fuse_file_info *fi)
+static
+void
+fuse_lib_getattr(fuse_req_t req,
+                 fuse_ino_t ino,
+                 struct fuse_file_info *fi)
 {
-	struct fuse *f = req_fuse_prepare(req);
-	struct stat buf;
-	char *path;
-	int err;
-        struct node *node;
-        struct fuse_file_info ffi = {0};
 
-        if(fi == NULL)
-          {
-            pthread_mutex_lock(&f->lock);
-            node = get_node(f,ino);
-            if(node->is_hidden)
-              {
-                fi = &ffi;
-                fi->fh = node->hidden_fh;
-              }
-            pthread_mutex_unlock(&f->lock);
-          }
+  int err;
+  char *path;
+  struct fuse *f;
+  struct stat buf;
+  struct node *node;
+  fuse_timeouts_t timeout = {0};
+  struct fuse_file_info ffi = {0};
 
-	memset(&buf, 0, sizeof(buf));
+  f = req_fuse_prepare(req);
+  if(fi == NULL)
+    {
+      pthread_mutex_lock(&f->lock);
+      node = get_node(f,ino);
+      if(node->is_hidden)
+        {
+          fi = &ffi;
+          fi->fh = node->hidden_fh;
+        }
+      pthread_mutex_unlock(&f->lock);
+    }
 
-        path = NULL;
-        err = (((fi == NULL) || (f->fs->op.fgetattr == NULL)) ?
-               get_path(f,ino,&path) :
-               get_path_nullok(f,ino,&path));
+  memset(&buf, 0, sizeof(buf));
 
-	if (!err) {
-		struct fuse_intr_data d;
-		fuse_prepare_interrupt(f, req, &d);
+  path = NULL;
+  err = (((fi == NULL) || (f->fs->op.fgetattr == NULL)) ?
+         get_path(f,ino,&path) :
+         get_path_nullok(f,ino,&path));
 
-                err = ((fi == NULL) ?
-                       fuse_fs_getattr(f->fs,path,&buf) :
-                       fuse_fs_fgetattr(f->fs,path,&buf,fi));
+  if(!err)
+    {
+      struct fuse_intr_data d;
 
-		fuse_finish_interrupt(f, req, &d);
-		free_path(f, ino, path);
-	}
+      fuse_prepare_interrupt(f,req,&d);
 
-	if (!err) {
-		pthread_mutex_lock(&f->lock);
-                node = get_node(f, ino);
-                update_stat(node, &buf);
-		pthread_mutex_unlock(&f->lock);
-		set_stat(f, ino, &buf);
-		fuse_reply_attr(req, &buf, f->conf.attr_timeout);
-	} else
-		reply_err(req, err);
+      err = ((fi == NULL) ?
+             fuse_fs_getattr(f->fs,path,&buf,&timeout) :
+             fuse_fs_fgetattr(f->fs,path,&buf,fi,&timeout));
+
+      fuse_finish_interrupt(f,req,&d);
+
+      free_path(f,ino,path);
+    }
+
+  if(!err)
+    {
+      pthread_mutex_lock(&f->lock);
+      node = get_node(f,ino);
+      update_stat(node,&buf);
+      pthread_mutex_unlock(&f->lock);
+      set_stat(f,ino,&buf);
+      fuse_reply_attr(req,&buf,&timeout.attr);
+    }
+  else
+    {
+      reply_err(req, err);
+    }
 }
 
 int fuse_fs_chmod(struct fuse_fs *fs, const char *path, mode_t mode)
@@ -2743,6 +2775,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 	char *path;
 	int err;
         struct node *node;
+        fuse_timeouts_t timeout = {0};
         struct fuse_file_info ffi = {0};
 
         if(fi == NULL)
@@ -2833,8 +2866,8 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 
                 if (!err)
                   err = ((fi == NULL) ?
-                         fuse_fs_getattr(f->fs, path, &buf) :
-                         fuse_fs_fgetattr(f->fs, path, &buf, fi));
+                         fuse_fs_getattr(f->fs, path, &buf, &timeout) :
+                         fuse_fs_fgetattr(f->fs, path, &buf, fi, &timeout));
 
 		fuse_finish_interrupt(f, req, &d);
 		free_path(f, ino, path);
@@ -2845,7 +2878,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
           update_stat(get_node(f, ino), &buf);
           pthread_mutex_unlock(&f->lock);
           set_stat(f, ino, &buf);
-          fuse_reply_attr(req, &buf, f->conf.attr_timeout);
+          fuse_reply_attr(req, &buf, &timeout.attr);
 	} else {
           reply_err(req, err);
         }
@@ -3207,6 +3240,7 @@ open_auto_cache(struct fuse           *f,
                 struct fuse_file_info *fi)
 {
   struct node *node;
+  fuse_timeouts_t timeout = {0};
 
   pthread_mutex_lock(&f->lock);
 
@@ -3217,7 +3251,7 @@ open_auto_cache(struct fuse           *f,
       struct stat stbuf;
 
       pthread_mutex_unlock(&f->lock);
-      err = fuse_fs_fgetattr(f->fs,path,&stbuf,fi);
+      err = fuse_fs_fgetattr(f->fs,path,&stbuf,fi,&timeout);
       pthread_mutex_lock(&f->lock);
 
       if(!err)
@@ -4486,9 +4520,6 @@ static const struct fuse_opt fuse_lib_opts[] = {
 	FUSE_LIB_OPT("uid=%d",		      uid, 0),
 	FUSE_LIB_OPT("gid=",		      set_gid, 1),
 	FUSE_LIB_OPT("gid=%d",		      gid, 0),
-	FUSE_LIB_OPT("entry_timeout=%lf",     entry_timeout, 0),
-	FUSE_LIB_OPT("attr_timeout=%lf",      attr_timeout, 0),
-	FUSE_LIB_OPT("negative_timeout=%lf",  negative_timeout, 0),
 	FUSE_LIB_OPT("noforget",              remember, -1),
 	FUSE_LIB_OPT("remember=%u",           remember, 0),
 	FUSE_LIB_OPT("nopath",                nopath, 1),
@@ -4506,9 +4537,6 @@ static void fuse_lib_help(void)
 "    -o umask=M             set file permissions (octal)\n"
 "    -o uid=N               set file owner\n"
 "    -o gid=N               set file group\n"
-"    -o entry_timeout=T     cache timeout for names (1.0s)\n"
-"    -o negative_timeout=T  cache timeout for deleted names (0.0s)\n"
-"    -o attr_timeout=T      cache timeout for attributes (1.0s)\n"
 "    -o noforget            never forget cached inodes\n"
 "    -o remember=T          remember cached inodes for T seconds (0s)\n"
 "    -o nopath              don't supply path if not necessary\n"
@@ -4675,9 +4703,6 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 		llop.setlk = NULL;
 	}
 
-	f->conf.entry_timeout = 1.0;
-	f->conf.attr_timeout = 1.0;
-	f->conf.negative_timeout = 0.0;
 	f->conf.intr_signal = FUSE_DEFAULT_INTR_SIGNAL;
 
 	f->pagesize = getpagesize();
@@ -4914,43 +4939,4 @@ int
 fuse_config_num_threads(const struct fuse *fuse_)
 {
   return fuse_->conf.threads;
-}
-
-void
-fuse_config_set_entry_timeout(struct fuse  *fuse_,
-                              const double  entry_timeout_)
-{
-  fuse_->conf.entry_timeout = entry_timeout_;
-}
-
-double
-fuse_config_get_entry_timeout(const struct fuse *fuse_)
-{
-  return fuse_->conf.entry_timeout;
-}
-
-void
-fuse_config_set_negative_entry_timeout(struct fuse *fuse_,
-                                       const double entry_timeout_)
-{
-  fuse_->conf.negative_timeout = entry_timeout_;
-}
-
-double
-fuse_config_get_negative_entry_timeout(const struct fuse *fuse_)
-{
-  return fuse_->conf.negative_timeout;
-}
-
-void
-fuse_config_set_attr_timeout(struct fuse  *fuse_,
-                             const double  attr_timeout_)
-{
-  fuse_->conf.attr_timeout = attr_timeout_;
-}
-
-double
-fuse_config_get_attr_timeout(const struct fuse *fuse_)
-{
-  return fuse_->conf.attr_timeout;
 }

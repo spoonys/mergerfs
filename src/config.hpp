@@ -17,9 +17,13 @@
 #pragma once
 
 #include "branch.hpp"
-#include "fusefunc.hpp"
+#include "enum.hpp"
+#include "errno.hpp"
+#include "func_category.hpp"
+#include "funcs.hpp"
 #include "policy.hpp"
 #include "policy_cache.hpp"
+#include "single_assignment.hpp"
 
 #include <fuse.h>
 
@@ -32,117 +36,97 @@
 class Config
 {
 public:
-  struct StatFS
-  {
-    enum Enum
-      {
-        BASE,
-        FULL
-      };
-  };
+  enum class StatFSEnum
+    {
+      INVALID = -1,
+      BASE,
+      FULL
+    };
+  typedef Enum<StatFSEnum> StatFS;
 
-  struct StatFSIgnore
-  {
-    enum Enum
-      {
-        NONE,
-        RO,
-        NC
-      };
-  };
+  enum class StatFSIgnoreEnum
+    {
+      INVALID = -1,
+      NONE,
+      RO,
+      NC
+    };
+  typedef Enum<StatFSIgnoreEnum> StatFSIgnore;
 
-  class CacheFiles
-  {
-  public:
-    enum Enum
-      {
-        INVALID = -1,
-        LIBFUSE,
-        OFF,
-        PARTIAL,
-        FULL,
-        AUTO_FULL
-      };
+  enum class CacheFilesEnum
+    {
+      INVALID = -1,
+      LIBFUSE,
+      OFF,
+      PARTIAL,
+      FULL,
+      AUTO_FULL
+    };
+  typedef Enum<CacheFilesEnum> CacheFiles;
 
-    CacheFiles();
-    CacheFiles(Enum);
-
-    operator int() const;
-    operator std::string() const;
-
-    CacheFiles& operator=(const Enum);
-    CacheFiles& operator=(const std::string&);
-
-    bool valid() const;
-
-  private:
-    Enum _data;
-  };
+  enum class XAttrEnum
+    {
+      INVALID     = -1,
+      PASSTHROUGH = 0,
+      NOSYS       = ENOSYS,
+      NOATTR      = ENOATTR
+    };
+  typedef Enum<XAttrEnum> XAttr;
 
 public:
   Config();
-
-public:
-  int set_func_policy(const std::string &fusefunc_,
-                      const std::string &policy_);
-  int set_category_policy(const std::string &category_,
-                          const std::string &policy_);
-
-public:
-  std::string              fsname;
-  std::string              destmount;
-  Branches                 branches;
-  mutable pthread_rwlock_t branches_lock;
-  uint64_t                 minfreespace;
-  bool                     moveonenospc;
-  bool                     direct_io;
-  bool                     kernel_cache;
-  bool                     auto_cache;
-  bool                     dropcacheonclose;
-  bool                     symlinkify;
-  time_t                   symlinkify_timeout;
-  bool                     nullrw;
-  bool                     ignorepponrename;
-  bool                     security_capability;
-  bool                     link_cow;
-  int                      xattr;
-  StatFS::Enum             statfs;
-  StatFSIgnore::Enum       statfs_ignore;
-  bool                     posix_acl;
-  bool                     cache_symlinks;
-  bool                     cache_readdir;
-  bool                     async_read;
-  CacheFiles               cache_files;
-  uint16_t                 fuse_msg_size;
-
-public:
-  const Policy  *policies[FuseFunc::Enum::END];
-  const Policy *&access;
-  const Policy *&chmod;
-  const Policy *&chown;
-  const Policy *&create;
-  const Policy *&getattr;
-  const Policy *&getxattr;
-  const Policy *&link;
-  const Policy *&listxattr;
-  const Policy *&mkdir;
-  const Policy *&mknod;
-  const Policy *&open;
-  const Policy *&readlink;
-  const Policy *&removexattr;
-  const Policy *&rename;
-  const Policy *&rmdir;
-  const Policy *&setxattr;
-  const Policy *&symlink;
-  const Policy *&truncate;
-  const Policy *&unlink;
-  const Policy *&utimens;
 
 public:
   mutable PolicyCache open_cache;
 
 public:
   const std::string controlfile;
+  const std::string version;
+
+public:
+  bool           async_read;
+  bool           auto_cache;
+  Branches       branches;
+  uint64_t       cache_attr;
+  uint64_t       cache_entry;
+  CacheFiles     cache_files;
+  uint64_t       cache_negative_entry;
+  bool           cache_readdir;
+  uint64_t       cache_statfs;
+  bool           cache_symlinks;
+  FuncCategories category;
+  bool           direct_io;
+  bool           dropcacheonclose;
+  std::string    fsname;
+  Funcs          func;
+  uint64_t       fuse_msg_size;
+  bool           ignorepponrename;
+  bool           kernel_cache;
+  bool           link_cow;
+  uint64_t       minfreespace;
+  std::string    mount;
+  bool           moveonenospc;
+  bool           nullrw;
+  const pid_t    pid;
+  bool           posix_acl;
+  bool           security_capability;
+  SrcMounts      srcmounts;
+  StatFS         statfs;
+  StatFSIgnore   statfs_ignore;
+  bool           symlinkify;
+  uint64_t       symlinkify_timeout;
+  uint64_t       threads;
+  XAttr          xattr;
+
+public:
+  static bool has_key(const std::string &key);
+  static void keys(std::vector<std::string> &keys);
+  std::string get(const std::string &key) const;
+  int set_raw(const std::string &key, const std::string &val);
+  int set(const std::string &key, const std::string &val);
+
+private:
+  static Config _config;
 
 public:
   static
@@ -150,22 +134,13 @@ public:
   Config &
   get(void)
   {
-    const fuse_context *fc = fuse_get_context();
-
-    return get(fc);
-  }
-
-  static
-  const Config &
-  get(const fuse_context *fc)
-  {
-    return *((Config*)fc->private_data);
+    return _config;
   }
 
   static
   Config &
   get_writable(void)
   {
-    return (*((Config*)fuse_get_context()->private_data));
+    return _config;
   }
 };

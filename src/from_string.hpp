@@ -1,5 +1,7 @@
 /*
-  Copyright (c) 2016, Antonio SJ Musumeci <trapexit@spawn.link>
+  ISC License
+
+  Copyright (c) 2019, Antonio SJ Musumeci <trapexit@spawn.link>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -16,17 +18,14 @@
 
 #pragma once
 
-#include "config.hpp"
-
 #include <string>
-#include <vector>
 
-#include <fuse.h>
+#include <stdint.h>
 
-namespace options
+namespace str
 {
-  void
-  parse(fuse_args                *args,
-        Config                   *config,
-        std::vector<std::string> *errs);
+  int from(const std::string &, bool *);
+  int from(const std::string &, uint64_t *);
+  int from(const std::string &, std::string *);
+  int from(const std::string &, const std::string *);
 }

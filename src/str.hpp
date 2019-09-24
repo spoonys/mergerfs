@@ -58,6 +58,13 @@ namespace str
            const std::string &s1);
 
   bool
-  ends_with(const std::string &str_,
-            const std::string &suffix_);
+  startswith(const std::string &str_,
+             const std::string &prefix_);
+
+  bool
+  endswith(const std::string &str_,
+           const std::string &suffix_);
+
+  std::string
+  trim(const std::string &str);
 }

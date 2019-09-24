@@ -14,6 +14,7 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#include "config.hpp"
 #include "errno.hpp"
 #include "fileinfo.hpp"
 #include "fs_base_stat.hpp"
@@ -43,13 +44,17 @@ namespace l
 namespace FUSE
 {
   int
-  fgetattr(const char     *fusepath_,
-           struct stat    *st_,
-           fuse_file_info *ffi_)
+  fgetattr(const char      *fusepath_,
+           struct stat     *st_,
+           fuse_file_info  *ffi_,
+           fuse_timeouts_t *timeout_)
   {
+    const Config &config = Config::get();
     FileInfo *fi = reinterpret_cast<FileInfo*>(ffi_->fh);
+
+    timeout_->entry.sec = config.cache_entry;
+    timeout_->attr.sec  = config.cache_attr;
 
     return l::fgetattr(fi->fd,st_);
   }
 }
-
