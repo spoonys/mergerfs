@@ -61,9 +61,9 @@ namespace l
               std::istream &is_)
   {
     int rv;
-    std::string line;
     std::string key;
     std::string val;
+    std::string line;
 
     rv = 0;
     while(std::getline(is_,line,'\n'))
@@ -74,7 +74,7 @@ namespace l
         str::splitkv(key,val,line,'=');
         key = str::trim(key);
         val = str::trim(val);
-        
+
         if(key.empty() || val.empty())
           continue;
 
@@ -178,20 +178,20 @@ parse_and_process_arg(Data              *data_,
     return 0;
   else if(arg_ == "hard_remove")
     return 0;
-  else if(arg_ == "direct_io")
-    return (data_->config->set("direct_io","true"),0);
-  else if(arg_ == "kernel_cache")
-    return (data_->config->set("kernel_cache","true"),0);
-  else if(arg_ == "auto_cache")
-    return (data_->config->set("auto_cache","true"),0);
-  else if(arg_ == "async_read")
-    return (data_->config->set("async_read","true"),0);
-  else if(arg_ == "sync_read")
-    return (data_->config->set("async_read","false"),0);
   else if(arg_ == "atomic_o_trunc")
     return 0;
   else if(arg_ == "big_writes")
     return 0;
+  else if(arg_ == "direct_io")
+    return (data_->config->set_raw("direct_io","true"),0);
+  else if(arg_ == "kernel_cache")
+    return (data_->config->set_raw("kernel_cache","true"),0);
+  else if(arg_ == "auto_cache")
+    return (data_->config->set_raw("auto_cache","true"),0);
+  else if(arg_ == "async_read")
+    return (data_->config->set_raw("async_read","true"),0);
+  else if(arg_ == "sync_read")
+    return (data_->config->set_raw("async_read","false"),0);
 
   return 1;
 }
