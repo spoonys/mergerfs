@@ -46,6 +46,24 @@ namespace str
     return split(result,str.c_str(),delimiter);
   }
 
+  void
+  splitkv(string       &key_,
+          string       &val_,
+          const string &str_,
+          const char    delimiter_)
+  {
+    istringstream iss;
+    std::stringbuf key;
+    std::stringbuf val;
+
+    iss.str(str_);
+    iss.get(key,delimiter_);
+    iss.get(val,'\0');
+
+    key_ = key.str();
+    val_ = val.str();
+  }
+
   string
   join(const vector<string> &vec,
        const size_t          substridx,

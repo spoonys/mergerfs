@@ -62,24 +62,23 @@ namespace l
   {
     int rv;
     std::string line;
-    std::vector<std::string> kv;
+    std::string key;
+    std::string val;
 
     rv = 0;
     while(std::getline(is_,line,'\n'))
       {
-        kv.clear();
-
         if(!line.empty() && (line[0] == '#'))
           continue;
 
-        str::split(kv,line,'=');
-        if(kv.size() != 2)
+        str::splitkv(key,val,line,'=');
+        key = str::trim(key);
+        val = str::trim(val);
+        
+        if(key.empty() || val.empty())
           continue;
 
-        kv[0] = str::trim(kv[0]);
-        kv[1] = str::trim(kv[1]);
-
-        rv = data_->config->set_raw(kv[0],kv[1]);
+        rv = data_->config->set_raw(key,val);
         switch(rv)
           {
           case -EINVAL:
