@@ -43,14 +43,14 @@ namespace str
         const string   &str,
         const char      delimiter)
   {
-    return split(result,str.c_str(),delimiter);
+    return str::split(result,str.c_str(),delimiter);
   }
 
   void
-  splitkv(string       &key_,
-          string       &val_,
-          const string &str_,
-          const char    delimiter_)
+  splitkv(const string &str_,
+          const char    delimiter_,
+          string       *key_,
+          string       *val_)
   {
     istringstream iss;
     std::stringbuf key;
@@ -60,8 +60,8 @@ namespace str
     iss.get(key,delimiter_);
     iss.get(val,'\0');
 
-    key_ = key.str();
-    val_ = val.str();
+    *key_ = key.str();
+    *val_ = val.str();
   }
 
   string

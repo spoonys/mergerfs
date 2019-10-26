@@ -72,7 +72,7 @@ namespace l
         if(!line.empty() && (line[0] == '#'))
           continue;
 
-        str::splitkv(key,val,line,'=');
+        str::splitkv(line,'=',&key,&val);
         key = str::trim(key);
         val = str::trim(val);
 
@@ -235,7 +235,7 @@ process_opt(Data              *data_,
   std::string key;
   std::string val;
 
-  str::splitkv(key,val,arg_,'=');
+  str::splitkv(arg_,'=',&key,&val);
   if(val.empty())
     return parse_and_process_arg(data_,key);
 

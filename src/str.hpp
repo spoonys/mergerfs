@@ -31,10 +31,10 @@ namespace str
         const char                delimiter);
 
   void
-  splitkv(std::string       &key,
-          std::string       &value,
-          const std::string &str,
-          const char         delimiter);
+  splitkv(const std::string &str,
+          const char         delimiter,
+          std::string       *key,
+          std::string       *value);
 
   std::string
   join(const std::vector<std::string> &vec,
