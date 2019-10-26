@@ -15,6 +15,7 @@
 */
 
 #include "config.hpp"
+#include "ef.hpp"
 #include "errno.hpp"
 #include "fs_glob.hpp"
 #include "fs_statvfs_cache.hpp"
@@ -171,6 +172,36 @@ set_default_options(fuse_args *args)
 
 static
 int
+parse_and_process_kv_arg(Data              *data_,
+                         const std::string &key_,
+                         const std::string &val_)
+{
+  int rv;
+  std::string key(key_);
+  std::string val(val_);
+
+  rv = 0;
+  if(key == "config")
+    return (l::read_config(data_,val_),0);
+  ef(key == "attr_timeout")
+    key = "cache.attr";
+  ef(key == "entry_timeout")
+    key = "cache.entry";
+  ef(key == "negative_entry")
+    key = "cache.negative_entry";
+
+  if(Config::has_key(key) == false)
+    return 1;
+
+  rv = data_->config->set_raw(key,val);
+  if(rv)
+    data_->errs->push_back("invalid argument - " + key_ + '=' + val_);
+
+  return 0;
+}
+
+static
+int
 parse_and_process_arg(Data              *data_,
                       const std::string &arg_)
 {
@@ -183,42 +214,17 @@ parse_and_process_arg(Data              *data_,
   else if(arg_ == "big_writes")
     return 0;
   else if(arg_ == "direct_io")
-    return (data_->config->set_raw("direct_io","true"),0);
+    return parse_and_process_kv_arg(data_,"direct_io","true");
   else if(arg_ == "kernel_cache")
-    return (data_->config->set_raw("kernel_cache","true"),0);
+    return parse_and_process_kv_arg(data_,"kernel_cache","true");
   else if(arg_ == "auto_cache")
-    return (data_->config->set_raw("auto_cache","true"),0);
+    return parse_and_process_kv_arg(data_,"auto_cache","true");
   else if(arg_ == "async_read")
-    return (data_->config->set_raw("async_read","true"),0);
+    return parse_and_process_kv_arg(data_,"async_read","true");
   else if(arg_ == "sync_read")
-    return (data_->config->set_raw("async_read","false"),0);
+    return parse_and_process_kv_arg(data_,"async_read","false");
 
   return 1;
-}
-
-static
-int
-parse_and_process_kv_arg(Data              *data_,
-                         const std::string &key_,
-                         const std::string &value_)
-{
-  int rv;
-
-  rv = 0;
-  if(key_ == "config")
-    {
-      l::read_config(data_,value_);
-      return 0;
-    }
-
-  if(Config::has_key(key_) == false)
-    return 1;
-
-  rv = data_->config->set_raw(key_,value_);
-  if(rv)
-    data_->errs->push_back("invalid argument - " + key_ + '=' + value_);
-
-  return 0;
 }
 
 static

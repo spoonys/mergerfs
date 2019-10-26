@@ -397,7 +397,6 @@ Config::set_raw(const std::string &key_,
                 const std::string &value_)
 {
   IFRET("async_read",async_read);
-  IFRET("attr_timeout",cache_attr);
   IFRET("auto_cache",auto_cache);
   IFRET("branches",branches);
   IFRET("cache.attr",cache_attr);
@@ -413,7 +412,6 @@ Config::set_raw(const std::string &key_,
   IFRET("category.search",category.search);
   IFRET("direct_io",direct_io);
   IFRET("dropcacheonclose",dropcacheonclose);
-  IFRET("entry_timeout",cache_entry);
   IFRET("fsname",fsname);
   IFRET("func.access",func.access);
   IFRET("func.chmod",func.chmod);
@@ -442,7 +440,6 @@ Config::set_raw(const std::string &key_,
   IFRET("minfreespace",minfreespace);
   IFRET("mount",mount);
   IFRET("moveonenospc",moveonenospc);
-  IFRET("negative_timeout",cache_negative_entry);
   IFRET("nullrw",nullrw);
   IFRET("posix_acl",posix_acl);
   IFRET("security_capability",security_capability);
