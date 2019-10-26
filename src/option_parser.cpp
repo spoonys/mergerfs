@@ -226,21 +226,14 @@ int
 process_opt(Data              *data_,
             const std::string &arg_)
 {
-  std::vector<std::string> argvalue;
+  std::string key;
+  std::string val;
 
-  str::split(argvalue,arg_,'=');
-  switch(argvalue.size())
-    {
-    case 1:
-      return parse_and_process_arg(data_,argvalue[0]);
+  str::splitkv(key,val,arg_,'=');
+  if(val.empty())
+    return parse_and_process_arg(data_,key);
 
-    case 2:
-      return parse_and_process_kv_arg(data_,argvalue[0],argvalue[1]);
-
-    default:
-      data_->errs->push_back("unknown argument - " + arg_);
-      return 1;
-    };
+  return parse_and_process_kv_arg(data_,key,val);
 }
 
 static
