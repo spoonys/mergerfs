@@ -396,6 +396,10 @@ int
 Config::set_raw(const std::string &key_,
                 const std::string &value_)
 {
+  IFRET("entry_timeout",cache_entry);
+  IFRET("attr_timeout",cache_attr);
+  IFRET("negative_timeout",cache_negative_entry);
+  
   IFRET("async_read",async_read);
   IFRET("auto_cache",auto_cache);
   IFRET("branches",branches);

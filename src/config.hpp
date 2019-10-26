@@ -23,7 +23,6 @@
 #include "funcs.hpp"
 #include "policy.hpp"
 #include "policy_cache.hpp"
-#include "single_assignment.hpp"
 
 #include <fuse.h>
 
