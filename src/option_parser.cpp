@@ -189,6 +189,17 @@ parse_and_process_kv_arg(Data              *data_,
     key = "cache.entry";
   ef(key == "negative_entry")
     key = "cache.negative_entry";
+  ef(key == "direct_io" && val.empty())
+    val = "true";
+  ef(key == "kernel_cache" && val.empty())
+    val = "true";
+  ef(key == "auto_cache" && val.empty())
+    val = "true";
+  ef(key == "async_read" && val.empty())
+    val = "true";
+  ef(key == "sync_read" && val.empty())
+    {key = "async_read", val = "false"}
+  
 
   if(Config::has_key(key) == false)
     return 1;
@@ -213,16 +224,7 @@ parse_and_process_arg(Data              *data_,
     return 0;
   else if(arg_ == "big_writes")
     return 0;
-  else if(arg_ == "direct_io")
-    return parse_and_process_kv_arg(data_,"direct_io","true");
-  else if(arg_ == "kernel_cache")
-    return parse_and_process_kv_arg(data_,"kernel_cache","true");
-  else if(arg_ == "auto_cache")
-    return parse_and_process_kv_arg(data_,"auto_cache","true");
-  else if(arg_ == "async_read")
-    return parse_and_process_kv_arg(data_,"async_read","true");
-  else if(arg_ == "sync_read")
-    return parse_and_process_kv_arg(data_,"async_read","false");
+
 
   return 1;
 }
