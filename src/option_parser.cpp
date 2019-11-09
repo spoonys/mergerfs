@@ -198,8 +198,15 @@ parse_and_process_kv_arg(Data              *data_,
   ef(key == "async_read" && val.empty())
     val = "true";
   ef(key == "sync_read" && val.empty())
-    {key = "async_read", val = "false"}
-  
+    {key = "async_read", val = "false";}
+  ef(key == "defaults")
+    return 0;
+  ef(key == "hard_remove")
+    return 0;
+  ef(key == "atomic_o_trunc")
+    return 0;
+  ef(key == "big_writes")
+    return 0;
 
   if(Config::has_key(key) == false)
     return 1;
@@ -213,24 +220,6 @@ parse_and_process_kv_arg(Data              *data_,
 
 static
 int
-parse_and_process_arg(Data              *data_,
-                      const std::string &arg_)
-{
-  if(arg_ == "defaults")
-    return 0;
-  else if(arg_ == "hard_remove")
-    return 0;
-  else if(arg_ == "atomic_o_trunc")
-    return 0;
-  else if(arg_ == "big_writes")
-    return 0;
-
-
-  return 1;
-}
-
-static
-int
 process_opt(Data              *data_,
             const std::string &arg_)
 {
@@ -238,8 +227,6 @@ process_opt(Data              *data_,
   std::string val;
 
   str::splitkv(arg_,'=',&key,&val);
-  if(val.empty())
-    return parse_and_process_arg(data_,key);
 
   return parse_and_process_kv_arg(data_,key,val);
 }
