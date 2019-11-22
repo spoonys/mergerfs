@@ -53,15 +53,15 @@ namespace str
           string       *val_)
   {
     istringstream iss;
-    std::stringbuf key;
-    std::stringbuf val;
+    std::string key;
+    std::string val;
 
     iss.str(str_);
-    iss.get(key,delimiter_);
-    iss.get(val,'\0');
+    std::getline(iss,key,delimiter_);
+    std::getline(iss,val,'\0');
 
-    *key_ = key.str();
-    *val_ = val.str();
+    *key_ = key;
+    *val_ = val;
   }
 
   string

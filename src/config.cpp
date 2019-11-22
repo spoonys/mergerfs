@@ -144,7 +144,7 @@ Config::has_key(const std::string &key_)
 
   i = std::find(g_keys.begin(),g_keys.end(),key_);
 
-  return (i == g_keys.end());
+  return (i != g_keys.end());
 }
 
 void

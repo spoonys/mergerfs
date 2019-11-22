@@ -366,6 +366,7 @@ option_processor(void       *data_,
   switch(key_)
     {
     case FUSE_OPT_KEY_OPT:
+      std::cout <<  arg_ << std::endl;
       return process_opt(data,arg_);
 
     case FUSE_OPT_KEY_NONOPT:
