@@ -1653,31 +1653,7 @@ static void do_bmap(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 
 static void do_ioctl(fuse_req_t req, fuse_ino_t nodeid, const void *inarg)
 {
-	struct fuse_ioctl_in *arg = (struct fuse_ioctl_in *) inarg;
-	unsigned int flags = arg->flags;
-	void *in_buf = arg->in_size ? PARAM(arg) : NULL;
-	struct fuse_file_info fi;
-
-	if (flags & FUSE_IOCTL_DIR &&
-	    !(req->f->conn.want & FUSE_CAP_IOCTL_DIR)) {
-		fuse_reply_err(req, ENOTTY);
-		return;
-	}
-
-	memset(&fi, 0, sizeof(fi));
-	fi.fh = arg->fh;
-
-	if (sizeof(void *) == 4 && req->f->conn.proto_minor >= 16 &&
-	    !(flags & FUSE_IOCTL_32BIT)) {
-		req->ioctl_64bit = 1;
-	}
-
-	if (req->f->op.ioctl)
-		req->f->op.ioctl(req, nodeid, arg->cmd,
-				 (void *)(uintptr_t)arg->arg, &fi, flags,
-				 in_buf, arg->in_size, arg->out_size);
-	else
-		fuse_reply_err(req, ENOSYS);
+  fuse_reply_err(req, ENOSYS);
 }
 
 void fuse_pollhandle_destroy(struct fuse_pollhandle *ph)

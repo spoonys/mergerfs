@@ -4099,51 +4099,7 @@ static void fuse_lib_ioctl(fuse_req_t req, fuse_ino_t ino, int cmd, void *arg,
 			   const void *in_buf, uint32_t in_bufsz,
 			   uint32_t out_bufsz_)
 {
-	struct fuse *f = req_fuse_prepare(req);
-	struct fuse_intr_data d;
-	struct fuse_file_info fi;
-	char *path, *out_buf = NULL;
-	int err;
-        uint32_t out_bufsz = out_bufsz_;
-
-	err = -EPERM;
-	if (flags & FUSE_IOCTL_UNRESTRICTED)
-		goto err;
-
-	if (flags & FUSE_IOCTL_DIR)
-		get_dirhandle(llfi, &fi);
-	else
-		fi = *llfi;
-
-	if (out_bufsz) {
-		err = -ENOMEM;
-		out_buf = malloc(out_bufsz);
-		if (!out_buf)
-			goto err;
-	}
-
-	assert(!in_bufsz || !out_bufsz || in_bufsz == out_bufsz);
-	if (out_buf)
-		memcpy(out_buf, in_buf, in_bufsz);
-
-	err = get_path_nullok(f, ino, &path);
-	if (err)
-		goto err;
-
-	fuse_prepare_interrupt(f, req, &d);
-
-	err = fuse_fs_ioctl(f->fs, path, cmd, arg, &fi, flags,
-			    out_buf ?: (void *)in_buf, &out_bufsz);
-
-	fuse_finish_interrupt(f, req, &d);
-	free_path(f, ino, path);
-
-	fuse_reply_ioctl(req, err, out_buf, out_bufsz);
-	goto out;
-err:
-	reply_err(req, err);
-out:
-	free(out_buf);
+  fuse_reply_err(req,ENOSYS);
 }
 
 static void fuse_lib_poll(fuse_req_t req, fuse_ino_t ino,
