@@ -58,6 +58,17 @@ public:
 
   inline
   int
+  put(const char *str_)
+  {
+    uint64_t len;
+
+    len = strlen(str_);
+
+    return put(str_,len);
+  }
+
+  inline
+  int
   size(void)
   {
     return kh_size(_set);

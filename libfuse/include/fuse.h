@@ -689,7 +689,7 @@ struct fuse_context {
  * @param user_data user data supplied in the context during the init() method
  * @return the created FUSE handle
  */
-struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
+struct fuse *fuse_new(fuse_chan_t *ch, struct fuse_args *args,
 		      const struct fuse_operations *op, size_t op_size,
 		      void *user_data);
 
@@ -704,17 +704,6 @@ struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
  * @param f the FUSE handle
  */
 void fuse_destroy(struct fuse *f);
-
-/**
- * FUSE event loop.
- *
- * Requests from the kernel are processed, and the appropriate
- * operations are called.
- *
- * @param f the FUSE handle
- * @return 0 if no error occurred, -1 otherwise
- */
-int fuse_loop(struct fuse *f);
 
 /**
  * Exit from event loop
@@ -1036,9 +1025,6 @@ struct fuse *fuse_setup(int argc, char *argv[],
 /** This is the part of fuse_main() after the event loop */
 void fuse_teardown(struct fuse *fuse, char *mountpoint);
 
-/** Read a single command.  If none are read, return NULL */
-struct fuse_cmd *fuse_read_cmd(struct fuse *f);
-
 /** Process a single command */
 void fuse_process_cmd(struct fuse *f, struct fuse_cmd *cmd);
 
@@ -1082,7 +1068,6 @@ struct fuse_session *fuse_get_session(struct fuse *f);
 #    error Compatibility with high-level API version 24 not supported
 #  else
 #    define fuse_dirfil_t fuse_dirfil_t_compat
-#    define __fuse_read_cmd fuse_read_cmd
 #    define __fuse_process_cmd fuse_process_cmd
 #    define __fuse_loop_mt fuse_loop_mt_proc
 #    if FUSE_USE_VERSION == 21

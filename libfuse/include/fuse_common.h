@@ -206,7 +206,7 @@ struct fuse_conn_info {
 };
 
 struct fuse_session;
-struct fuse_chan;
+typedef struct fuse_chan_t fuse_chan_t;
 struct fuse_pollhandle;
 
 /**
@@ -219,7 +219,7 @@ struct fuse_pollhandle;
  * @param args argument vector
  * @return the communication channel on success, NULL on failure
  */
-struct fuse_chan *fuse_mount(const char       *mountpoint,
+fuse_chan_t *fuse_mount(const char       *mountpoint,
                              struct fuse_args *args);
 
 /**
@@ -228,7 +228,7 @@ struct fuse_chan *fuse_mount(const char       *mountpoint,
  * @param mountpoint the mount point path
  * @param ch the communication channel
  */
-void fuse_unmount(const char *mountpoint, struct fuse_chan *ch);
+void fuse_unmount(const char *mountpoint, fuse_chan_t *ch);
 
 /**
  * Parse common options
