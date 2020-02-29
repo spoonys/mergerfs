@@ -69,7 +69,6 @@ struct mount_opts {
   int flags;
   int nonempty;
   int auto_unmount;
-  int blkdev;
   char *fsname;
   char *subtype;
   char *subtype_opt;
@@ -84,7 +83,6 @@ static const struct fuse_opt fuse_mount_opts[] = {
   FUSE_MOUNT_OPT("allow_other",		allow_other),
   FUSE_MOUNT_OPT("allow_root",		allow_root),
   FUSE_MOUNT_OPT("nonempty",		nonempty),
-  FUSE_MOUNT_OPT("blkdev",		blkdev),
   FUSE_MOUNT_OPT("auto_unmount",		auto_unmount),
   FUSE_MOUNT_OPT("fsname=%s",		fsname),
   FUSE_MOUNT_OPT("subtype=%s",		subtype),
@@ -92,7 +90,6 @@ static const struct fuse_opt fuse_mount_opts[] = {
   FUSE_OPT_KEY("allow_root",		KEY_ALLOW_ROOT),
   FUSE_OPT_KEY("nonempty",		KEY_FUSERMOUNT_OPT),
   FUSE_OPT_KEY("auto_unmount",		KEY_FUSERMOUNT_OPT),
-  FUSE_OPT_KEY("blkdev",			KEY_FUSERMOUNT_OPT),
   FUSE_OPT_KEY("fsname=",			KEY_FUSERMOUNT_OPT),
   FUSE_OPT_KEY("subtype=",		KEY_SUBTYPE_OPT),
   FUSE_OPT_KEY("large_read",		KEY_KERN_OPT),
@@ -490,7 +487,7 @@ static int fuse_mount_sys(const char *mnt, struct mount_opts *mo,
     goto out_close;
   }
 
-  strcpy(type, mo->blkdev ? "fuseblk" : "fuse");
+  strcpy(type,"fuse");
   if (mo->subtype) {
     strcat(type, ".");
     strcat(type, mo->subtype);
@@ -501,11 +498,9 @@ static int fuse_mount_sys(const char *mnt, struct mount_opts *mo,
   res = mount(source, mnt, type, mo->flags, mo->kernel_opts);
   if (res == -1 && errno == ENODEV && mo->subtype) {
     /* Probably missing subtype support */
-    strcpy(type, mo->blkdev ? "fuseblk" : "fuse");
+    strcpy(type,"fuse");
     if (mo->fsname) {
-      if (!mo->blkdev)
-        sprintf(source, "%s#%s", mo->subtype,
-                mo->fsname);
+      sprintf(source, "%s#%s", mo->subtype, mo->fsname);
     } else {
       strcpy(source, type);
     }
@@ -520,13 +515,9 @@ static int fuse_mount_sys(const char *mnt, struct mount_opts *mo,
       res = -2;
     } else {
       int errno_save = errno;
-      if (mo->blkdev && errno == ENODEV &&
-          !fuse_mnt_check_fuseblk())
-        fprintf(stderr,
-                "fuse: 'fuseblk' support missing\n");
-      else
-        fprintf(stderr, "fuse: mount failed: %s\n",
-                strerror(errno_save));
+      fprintf(stderr,
+              "fuse: mount failed: %s\n",
+              strerror(errno_save));
     }
 
     goto out_close;
