@@ -3401,7 +3401,7 @@ fuse_lib_opendir(fuse_req_t req,
     pthread_mutex_destroy(&dh->lock);
     free(dh);
   }
-  free_path(f, ino, path);  
+  free_path(f, ino, path);
 }
 
 static
@@ -3664,7 +3664,7 @@ static int common_getxattr(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 static void fuse_lib_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 			      size_t size)
 {
-  int res;  
+  int res;
   struct fuse *f = req_fuse_prepare(req);
 
   if(size)
