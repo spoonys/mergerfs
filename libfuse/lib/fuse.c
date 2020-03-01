@@ -4290,11 +4290,6 @@ static struct fuse_lowlevel_ops fuse_path_ops =
     .copy_file_range = fuse_lib_copy_file_range,
   };
 
-int fuse_notify_poll(struct fuse_pollhandle *ph)
-{
-  return fuse_lowlevel_notify_poll(ph);
-}
-
 static void free_cmd(struct fuse_cmd *cmd)
 {
   free(cmd->buf);
